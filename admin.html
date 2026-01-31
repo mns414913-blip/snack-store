@@ -3,54 +3,24 @@
 <head>
 <meta charset="UTF-8"/>
 <title>Admin - Snacks Store</title>
-
-<style>
-body {font-family:Arial; text-align:center; background:#f2f2f2}
-#panel {display:none}
-input {padding:8px;margin:5px}
-button {padding:6px 12px;margin:5px}
-</style>
 </head>
 <body>
 
-<h2>لوحة تحكم Snacks Store</h2>
-
-<!-- شاشة كلمة السر -->
-<div id="loginBox">
-  <h3>ادخل كلمة السر</h3>
-  <input type="password" id="passInput" placeholder="كلمة السر">
-  <button onclick="checkPass()">دخول</button>
-</div>
-
-<!-- لوحة التحكم (مخفية لحد ما يدخل الباس) -->
-<div id="panel">
+<h2>لوحة التحكم</h2>
 
 <h3>إضافة منتج</h3>
 <input id="pname" placeholder="اسم المنتج">
 <input id="pprice" placeholder="السعر">
-<input id="pimg" placeholder="رابط صورة">
+<input id="pimg" placeholder="رابط صورة المنتج">
 <button onclick="addProduct()">إضافة</button>
+
+<p>لرفع صورة: ارفعها على postimages.org وخد الرابط المباشر وحطه هنا</p>
 
 <h3>المنتجات</h3>
 <div id="plist"></div>
 
 <h3>الطلبات</h3>
 <div id="orders"></div>
-
-</div>
-
-<script>
-const correctPass = "01012768312pqpqwuyieqw";
-
-function checkPass(){
-  if(passInput.value === correctPass){
-    loginBox.style.display="none";
-    panel.style.display="block";
-  } else {
-    alert("كلمة السر غلط ❌");
-  }
-}
-</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
@@ -81,8 +51,7 @@ window.addProduct = ()=>{
 onValue(ref(db,"products"), snap=>{
  plist.innerHTML="";
  snap.forEach(c=>{
-   plist.innerHTML+=`${c.val().name} 
-   <button onclick="delProd('${c.key}')">حذف</button><br>`;
+   plist.innerHTML+=\`\${c.val().name} <button onclick="delProd('\${c.key}')">حذف</button><br>\`;
  });
 });
 
@@ -92,17 +61,18 @@ onValue(ref(db,"orders"), snap=>{
  orders.innerHTML="";
  snap.forEach(c=>{
    let o=c.val();
-   orders.innerHTML+=`
+   orders.innerHTML+=\`
    <div style="border:1px solid #000;margin:5px;padding:5px">
-   ${o.name} — ${o.status}<br>
-   <a href="${o.location}" target="_blank">الموقع</a><br>
-   <button onclick="confirmOrder('${c.key}')">تأكيد</button>
-   </div>`;
+   👤 \${o.name}<br>
+   📞 \${o.phone}<br>
+   الحالة: \${o.status}<br>
+   <a href="\${o.location}" target="_blank">الموقع</a><br>
+   <button onclick="confirmOrder('\${c.key}')">تأكيد</button>
+   </div>\`;
  });
 });
 
 window.confirmOrder=(id)=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
 </script>
-
 </body>
 </html>
