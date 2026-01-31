@@ -12,28 +12,12 @@ header {background:#ff9800; padding:15px; color:white; display:flex; justify-con
 .products {display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;}
 .product {background:white; padding:10px; border-radius:8px; text-align:center;}
 button {padding:5px 10px; margin:3px;}
-
-/* الإعلانات */
-.top-ad, .bottom-ad {
-  width: 100%;
-  text-align: center;
-  background: #ddd;
-  padding: 5px 0;
-}
-.top-ad img, .bottom-ad img {
-  max-width: 100%;
-  border-radius: 6px;
-}
-.bottom-ad {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-}
+.top-ad, .bottom-ad {width:100%; text-align:center; background:#ddd; padding:5px 0;}
+.bottom-ad {position:fixed; bottom:0; left:0;}
 </style>
 </head>
 <body>
 
-<!-- إعلان علوي -->
 <div class="top-ad">
   <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
 </div>
@@ -52,13 +36,13 @@ button {padding:5px 10px; margin:3px;}
 <h3 style="padding:10px">بيانات الطلب</h3>
 <div style="padding:10px">
 <input id="custName" placeholder="اسمك" required><br><br>
+<input id="custPhone" placeholder="رقم الهاتف" required><br><br>
 <input id="shopName" placeholder="اسم المحل (اختياري)"><br><br>
 <button onclick="getLocation()">📍 تحديد الموقع</button>
 <div id="locationText"></div><br>
 <button onclick="sendOrder()">إرسال الطلب</button>
 </div>
 
-<!-- إعلان سفلي -->
 <div class="bottom-ad">
   <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
 </div>
@@ -91,7 +75,7 @@ function updateCart() {
     total += p.price * p.qty;
     cartDiv.innerHTML += `<div>${p.name} × ${p.qty}</div>`;
   });
-  document.getElementById("total").innerText = total;
+  totalEl.innerText = total;
 }
 
 window.addQty = (id, name, price) => {
@@ -107,12 +91,11 @@ window.minusQty = (id) => {
   updateCart();
 };
 
-const productsDiv = document.getElementById("products");
 onValue(ref(db,"products"), snap => {
-  productsDiv.innerHTML="";
+  products.innerHTML="";
   snap.forEach(child=>{
     let p=child.val();
-    productsDiv.innerHTML += `
+    products.innerHTML += `
       <div class="product">
         <img src="${p.img}" width="80"><br>
         ${p.name}<br>
@@ -125,25 +108,30 @@ onValue(ref(db,"products"), snap => {
 
 window.getLocation = ()=>{
  navigator.geolocation.getCurrentPosition(pos=>{
-   userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-   document.getElementById("locationText").innerText="تم تحديد الموقع ✔";
+   userLocation = \`https://maps.google.com/?q=\${pos.coords.latitude},\${pos.coords.longitude}\`;
+   locationText.innerText="تم تحديد الموقع ✔";
  });
 };
 
 window.sendOrder = ()=>{
  let name = custName.value;
+ let phone = custPhone.value;
+
  if(!name) return alert("اكتب اسمك");
+ if(!phone) return alert("اكتب رقم الهاتف");
+
  push(ref(db,"orders"),{
    name,
+   phone,
    shop:shopName.value,
    location:userLocation,
    cart,
    status:"جديد"
  });
+
  alert("تم إرسال الطلب");
  cart=[]; updateCart();
 };
 </script>
-
 </body>
 </html>
