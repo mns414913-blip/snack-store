@@ -1,53 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
-<title>Admin</title>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<meta charset="UTF-8"/>
+<title>Admin - Snacks Store</title>
 </head>
 <body>
-
 <h2>لوحة التحكم</h2>
 
-<input type="password" id="pass" placeholder="كلمة السر"><br><br>
-<input id="name" placeholder="اسم المنتج"><br><br>
-<input id="price" placeholder="السعر"><br><br>
-<input id="img" placeholder="رابط الصورة"><br><br>
-
+<h3>إضافة منتج</h3>
+<input id="pname" placeholder="اسم المنتج">
+<input id="pprice" placeholder="السعر">
+<input id="pimg" placeholder="رابط صورة">
 <button onclick="addProduct()">إضافة</button>
 
+<h3>المنتجات</h3>
+<div id="plist"></div>
+
 <h3>الطلبات</h3>
-<ul id="orders"></ul>
+<div id="orders"></div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
 const firebaseConfig = {
- apiKey:"PUT_HERE",
- authDomain:"PUT_HERE",
- databaseURL:"PUT_HERE",
- projectId:"PUT_HERE"
+  apiKey: "AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
+  authDomain: "snacks-store-35112.firebaseapp.com",
+  databaseURL: "https://snacks-store-35112-default-rtdb.firebaseio.com",
+  projectId: "snacks-store-35112",
+  storageBucket: "snacks-store-35112.firebasestorage.app",
+  messagingSenderId: "523521529745",
+  appId: "1:523521529745:web:2fb1ec4fc48d99e11eec30"
 };
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
 
-function addProduct(){
- if(document.getElementById("pass").value!="01012768312pqpqwuyieqw"){alert("كلمة السر غلط");return;}
- db.ref("products").push({
-  name:document.getElementById("name").value,
-  price:document.getElementById("price").value,
-  img:document.getElementById("img").value
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.addProduct = ()=>{
+ push(ref(db,"products"),{
+   name:pname.value,
+   price:pprice.value,
+   img:pimg.value
  });
- alert("اتضاف");
-}
+ alert("تمت الإضافة");
+};
 
-db.ref("orders").on("value",snap=>{
- let ul=document.getElementById("orders");
- ul.innerHTML="";
+onValue(ref(db,"products"), snap=>{
+ plist.innerHTML="";
  snap.forEach(c=>{
-  let o=c.val();
-  ul.innerHTML+=`<li>${o.name} - ${o.phone} - ${o.location}</li>`;
+   plist.innerHTML+=`${c.val().name} 
+   <button onclick="delProd('${c.key}')">حذف</button><br>`;
  });
 });
-</script>
 
+window.delProd = (id)=> remove(ref(db,"products/"+id));
+
+onValue(ref(db,"orders"), snap=>{
+ orders.innerHTML="";
+ snap.forEach(c=>{
+   let o=c.val();
+   orders.innerHTML+=`
+   <div style="border:1px solid #000;margin:5px;padding:5px">
+   ${o.name} — ${o.status}<br>
+   <a href="${o.location}" target="_blank">الموقع</a><br>
+   <button onclick="confirmOrder('${c.key}')">تأكيد</button>
+   </div>`;
+ });
+});
+
+window.confirmOrder=(id)=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
+</script>
 </body>
 </html>
