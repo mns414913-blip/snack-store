@@ -1,114 +1,120 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snack Store</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Snacks Store</title>
 <style>
-body{font-family:Arial;direction:rtl;margin:0;background:#f5f5f5}
-header{background:#ff6600;color:#fff;padding:10px;text-align:center}
-#search{width:90%;padding:8px;margin:10px;border-radius:5px;border:none}
-.container{display:flex}
-.products{flex:3;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;padding:10px}
-.product{background:#fff;padding:10px;border-radius:10px;text-align:center}
-.product img{width:90px;height:90px}
-.ads{flex:1;padding:10px}
-.ads img{width:100%;margin-bottom:10px;border-radius:10px}
-.cart{position:fixed;bottom:0;right:0;background:#fff;width:100%;max-height:50%;overflow:auto;display:none;padding:10px}
-button{background:green;color:#fff;border:none;padding:5px 8px;border-radius:5px}
+body {font-family: Arial; margin:0; background:#f2f2f2;}
+header {background:#ff9800; padding:15px; color:white; display:flex; justify-content:space-between;}
+#cartBox {background:white; padding:10px; border-radius:8px; width:250px;}
+.products {display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;}
+.product {background:white; padding:10px; border-radius:8px; text-align:center;}
+button {padding:5px 10px; margin:3px;}
 </style>
 </head>
 <body>
 
-<header>Snack Store</header>
-<input id="search" placeholder="ابحث عن منتج">
+<header>
+<h2>Snacks Store</h2>
+<div id="cartBox">
+<h4>🛒 السلة</h4>
+<div id="cartItems"></div>
+<b>الإجمالي: <span id="total">0</span> ج</b>
+</div>
+</header>
 
-<div class="container">
 <div class="products" id="products"></div>
 
-<div class="ads">
-<h3>إعلانات</h3>
-<img src="https://via.placeholder.com/200x200?text=Ad">
-</div>
-</div>
-
-<div class="cart" id="cart">
-<h3>السلة</h3>
-<ul id="cartItems"></ul>
-<p>الإجمالي: <span id="total">0</span> ج</p>
-
-<h4>بيانات الطلب</h4>
-<input id="name" placeholder="الاسم"><br><br>
-<input id="phone" placeholder="رقم الهاتف"><br><br>
-<input id="location" placeholder="العنوان"><br><br>
-<button onclick="submitOrder()">تأكيد الطلب</button>
+<h3 style="padding:10px">بيانات الطلب</h3>
+<div style="padding:10px">
+<input id="custName" placeholder="اسمك" required><br><br>
+<input id="shopName" placeholder="اسم المحل (اختياري)"><br><br>
+<button onclick="getLocation()">📍 تحديد الموقع</button>
+<div id="locationText"></div><br>
+<button onclick="sendOrder()">إرسال الطلب</button>
 </div>
 
-<button onclick="toggleCart()" style="position:fixed;bottom:60px;left:10px;">🛒</button>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-<script>
 const firebaseConfig = {
- apiKey:"PUT_HERE",
- authDomain:"PUT_HERE",
- databaseURL:"PUT_HERE",
- projectId:"PUT_HERE"
+  apiKey: "AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
+  authDomain: "snacks-store-35112.firebaseapp.com",
+  databaseURL: "https://snacks-store-35112-default-rtdb.firebaseio.com",
+  projectId: "snacks-store-35112",
+  storageBucket: "snacks-store-35112.firebasestorage.app",
+  messagingSenderId: "523521529745",
+  appId: "1:523521529745:web:2fb1ec4fc48d99e11eec30"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
-let cart=[];
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-db.ref("products").on("value",snap=>{
- let div=document.getElementById("products");
- div.innerHTML="";
- snap.forEach(c=>{
-  let p=c.val();
-  div.innerHTML+=`<div class="product">
-  <img src="${p.img}">
-  <h4>${p.name}</h4>
-  <p>${p.price} ج</p>
-  <button onclick="addToCart('${p.name}',${p.price})">أضف</button>
-  </div>`;
- });
-});
+let cart = [];
+let userLocation = "";
 
-function addToCart(n,p){cart.push({n,p});alert("اتضاف");}
-function toggleCart(){let c=document.getElementById("cart");c.style.display=c.style.display=="block"?"none":"block";updateCart();}
-function updateCart(){let ul=document.getElementById("cartItems");ul.innerHTML="";let t=0;cart.forEach(i=>{ul.innerHTML+=`<li>${i.n}-${i.p}ج</li>`;t+=Number(i.p)});document.getElementById("total").innerText=t;}
-
-function submitOrder(){
- let order={
-  name:document.getElementById("name").value,
-  phone:document.getElementById("phone").value,
-  location:document.getElementById("location").value,
-  items:cart
- };
- db.ref("orders").push(order);
- alert("تم إرسال الطلب");
- cart=[];updateCart();
+function updateCart() {
+  const cartDiv = document.getElementById("cartItems");
+  cartDiv.innerHTML = "";
+  let total = 0;
+  cart.forEach(p => {
+    total += p.price * p.qty;
+    cartDiv.innerHTML += `<div>${p.name} × ${p.qty}</div>`;
+  });
+  document.getElementById("total").innerText = total;
 }
 
-document.getElementById("search").addEventListener("input",e=>{
- let v=e.target.value.toLowerCase();
- db.ref("products").once("value",snap=>{
-  let div=document.getElementById("products");div.innerHTML="";
-  snap.forEach(c=>{
-   let p=c.val();
-   if(p.name.toLowerCase().includes(v)){
-    div.innerHTML+=`<div class="product">
-    <img src="${p.img}">
-    <h4>${p.name}</h4>
-    <p>${p.price} ج</p>
-    <button onclick="addToCart('${p.name}',${p.price})">أضف</button></div>`;
-   }
-  });
- });
-});
-</script>
+window.addQty = (id, name, price) => {
+  let item = cart.find(i => i.id === id);
+  if(item) item.qty++;
+  else cart.push({id,name,price,qty:1});
+  updateCart();
+};
 
+window.minusQty = (id) => {
+  let item = cart.find(i => i.id === id);
+  if(item && item.qty>1) item.qty--;
+  updateCart();
+};
+
+const productsDiv = document.getElementById("products");
+onValue(ref(db,"products"), snap => {
+  productsDiv.innerHTML="";
+  snap.forEach(child=>{
+    let p=child.val();
+    productsDiv.innerHTML += `
+      <div class="product">
+        <img src="${p.img}" width="80"><br>
+        ${p.name}<br>
+        ${p.price} ج<br>
+        <button onclick="addQty('${child.key}','${p.name}',${p.price})">➕</button>
+        <button onclick="minusQty('${child.key}')">➖</button>
+      </div>`;
+  });
+});
+
+window.getLocation = ()=>{
+ navigator.geolocation.getCurrentPosition(pos=>{
+   userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+   document.getElementById("locationText").innerText="تم تحديد الموقع ✔";
+ });
+};
+
+window.sendOrder = ()=>{
+ let name = custName.value;
+ if(!name) return alert("اكتب اسمك");
+ push(ref(db,"orders"),{
+   name,
+   shop:shopName.value,
+   location:userLocation,
+   cart,
+   status:"جديد"
+ });
+ alert("تم إرسال الطلب");
+ cart=[]; updateCart();
+};
+</script>
 </body>
 </html>
