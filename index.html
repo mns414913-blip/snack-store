@@ -6,19 +6,23 @@
 <title>Snacks Store</title>
 
 <style>
-body {font-family: Arial; margin:0; background:#f2f2f2; padding-bottom:100px;}
-header {background:#ff9800; padding:15px; color:white; display:flex; justify-content:space-between;}
-#cartBox {background:white; padding:10px; border-radius:8px; width:260px;}
+body {font-family: Arial; margin:0; background:#f2f2f2; padding-bottom:120px;}
+header {background:#ff9800; padding:15px; color:white; display:flex; justify-content:space-between; align-items:center;}
+#cartBox {background:white; padding:10px; border-radius:8px; width:300px;}
 .products {display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;}
 .product {background:white; padding:10px; border-radius:8px; text-align:center;}
 button {padding:5px 10px; margin:3px;}
 .top-ad, .bottom-ad {width:100%; text-align:center; background:#ddd; padding:5px 0;}
 .bottom-ad {position:fixed; bottom:0; left:0;}
+.cartItem {display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;}
+.cartItem img{width:40px; height:40px; object-fit:cover; margin-right:5px;}
 </style>
 </head>
 <body>
 
-<div class="top-ad"><img src="https://via.placeholder.com/900x80?text=اعلان+هنا" /></div>
+<div class="top-ad">
+  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
+</div>
 
 <header>
 <h2>Snacks Store</h2>
@@ -41,7 +45,9 @@ button {padding:5px 10px; margin:3px;}
 <button onclick="sendOrder()">إرسال الطلب</button>
 </div>
 
-<div class="bottom-ad"><img src="https://via.placeholder.com/900x80?text=اعلان+هنا" /></div>
+<div class="bottom-ad">
+  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
@@ -63,69 +69,100 @@ const db = getDatabase(app);
 let cart = [];
 let userLocation = "";
 
-function updateCart() {
-  cartItems.innerHTML = "";
+// تحديث السلة وعرض المنتجات فيها
+function updateCart(){
+  const cartDiv = document.getElementById("cartItems");
+  cartDiv.innerHTML="";
   let total = 0;
-  cart.forEach(p => {
-    total += p.price * p.qty;
-    cartItems.innerHTML += `<div>${p.name} × ${p.qty} = ${p.price*p.qty}ج</div>`;
+  cart.forEach(item=>{
+    total += item.price * item.qty;
+    cartDiv.innerHTML += `
+      <div class="cartItem">
+        <img src="${item.img}">
+        ${item.name} × ${item.qty} = ${item.price*item.qty} ج
+        <div>
+          <button onclick="addQty('${item.id}')">➕</button>
+          <button onclick="minusQty('${item.id}')">➖</button>
+        </div>
+      </div>`;
   });
   totalEl.innerText = total;
 }
 
-window.addQty = (id, name, price, img) => {
-  let item = cart.find(i => i.id === id);
+// إضافة وطرح الكمية
+window.addQty=(id)=>{
+  let item = cart.find(i=>i.id===id);
   if(item) item.qty++;
-  else cart.push({id,name,price,qty:1,img});
   updateCart();
 };
-
-window.minusQty = (id) => {
-  let item = cart.find(i => i.id === id);
+window.minusQty=(id)=>{
+  let item = cart.find(i=>i.id===id);
   if(item && item.qty>1) item.qty--;
   updateCart();
 };
 
-onValue(ref(db,"products"), snap => {
+// تحميل المنتجات من Firebase
+onValue(ref(db,"products"), snap=>{
   products.innerHTML="";
-  snap.forEach(child=>{
-    let p=child.val();
+  snap.forEach(c=>{
+    let p=c.val();
     products.innerHTML += `
       <div class="product">
         <img src="${p.img}" width="80"><br>
-        ${p.name}<br>${p.price} ج<br>
-        <button onclick="addQty('${child.key}','${p.name}',${p.price}','${p.img}')">➕</button>
-        <button onclick="minusQty('${child.key}')">➖</button>
+        ${p.name}<br>
+        ${p.price} ج<br>
+        <button onclick="addProductToCart('${c.key}','${p.name}',${p.price},'${p.img}')">➕</button>
+        <button onclick="minusProductFromCart('${c.key}')">➖</button>
       </div>`;
   });
 });
 
-window.getLocation = ()=>{
- navigator.geolocation.getCurrentPosition(
-   pos=>{
-     userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-     locationText.innerText="تم تحديد الموقع ✔";
-   },
-   ()=> alert("اسمح بالوصول للموقع")
- );
+// إضافة المنتج للسلة
+window.addProductToCart=(id,name,price,img)=>{
+  let item = cart.find(i=>i.id===id);
+  if(item) item.qty++;
+  else cart.push({id,name,price,img,qty:1});
+  updateCart();
 };
 
-window.sendOrder = ()=>{
- if(!custName.value) return alert("اكتب اسمك");
- if(!custPhone.value) return alert("اكتب رقم الهاتف");
+// طرح المنتج من السلة
+window.minusProductFromCart=(id)=>{
+  let item = cart.find(i=>i.id===id);
+  if(item && item.qty>1) item.qty--;
+  updateCart();
+};
 
- push(ref(db,"orders"),{
-   name:custName.value,
-   phone:custPhone.value,
-   shop:shopName.value,
-   location:userLocation,
-   cart,
-   status:"جديد"
- });
+// تحديد الموقع
+window.getLocation=()=>{
+  if(!navigator.geolocation){ alert("المتصفح لا يدعم تحديد الموقع"); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+      locationText.innerText="تم تحديد الموقع ✔";
+    },
+    ()=> alert("اسمح بالوصول للموقع")
+  );
+};
 
- alert("تم إرسال الطلب");
- cart=[]; updateCart();
+// إرسال الطلب
+window.sendOrder=()=>{
+  if(!custName.value) return alert("اكتب اسمك");
+  if(!custPhone.value) return alert("اكتب رقم الهاتف");
+  if(cart.length===0) return alert("اختار منتجات أولا");
+
+  push(ref(db,"orders"),{
+    name: custName.value,
+    phone: custPhone.value,
+    shop: shopName.value,
+    location: userLocation,
+    cart,
+    status:"جديد"
+  });
+
+  alert("تم إرسال الطلب");
+  cart=[]; updateCart();
 };
 </script>
+
 </body>
 </html>
