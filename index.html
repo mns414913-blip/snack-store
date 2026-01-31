@@ -68,8 +68,9 @@ const db = getDatabase(app);
 
 let cart = [];
 let userLocation = "";
+const totalEl = document.getElementById("total");
 
-// تحديث السلة وعرض المنتجات فيها
+// تحديث السلة
 function updateCart(){
   const cartDiv = document.getElementById("cartItems");
   cartDiv.innerHTML="";
@@ -89,7 +90,6 @@ function updateCart(){
   totalEl.innerText = total;
 }
 
-// إضافة وطرح الكمية
 window.addQty=(id)=>{
   let item = cart.find(i=>i.id===id);
   if(item) item.qty++;
@@ -101,11 +101,12 @@ window.minusQty=(id)=>{
   updateCart();
 };
 
-// تحميل المنتجات من Firebase
+// جلب المنتجات
 onValue(ref(db,"products"), snap=>{
   products.innerHTML="";
   snap.forEach(c=>{
     let p=c.val();
+    if(!p.name || !p.price || !p.img) return;
     products.innerHTML += `
       <div class="product">
         <img src="${p.img}" width="80"><br>
@@ -117,15 +118,12 @@ onValue(ref(db,"products"), snap=>{
   });
 });
 
-// إضافة المنتج للسلة
 window.addProductToCart=(id,name,price,img)=>{
   let item = cart.find(i=>i.id===id);
   if(item) item.qty++;
   else cart.push({id,name,price,img,qty:1});
   updateCart();
 };
-
-// طرح المنتج من السلة
 window.minusProductFromCart=(id)=>{
   let item = cart.find(i=>i.id===id);
   if(item && item.qty>1) item.qty--;
