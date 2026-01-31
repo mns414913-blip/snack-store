@@ -8,7 +8,7 @@
 <style>
 body {font-family: Arial; margin:0; background:#f2f2f2; padding-bottom:100px;}
 header {background:#ff9800; padding:15px; color:white; display:flex; justify-content:space-between;}
-#cartBox {background:white; padding:10px; border-radius:8px; width:250px;}
+#cartBox {background:white; padding:10px; border-radius:8px; width:260px;}
 .products {display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;}
 .product {background:white; padding:10px; border-radius:8px; text-align:center;}
 button {padding:5px 10px; margin:3px;}
@@ -18,9 +18,7 @@ button {padding:5px 10px; margin:3px;}
 </head>
 <body>
 
-<div class="top-ad">
-  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
-</div>
+<div class="top-ad"><img src="https://via.placeholder.com/900x80?text=اعلان+هنا" /></div>
 
 <header>
 <h2>Snacks Store</h2>
@@ -43,9 +41,7 @@ button {padding:5px 10px; margin:3px;}
 <button onclick="sendOrder()">إرسال الطلب</button>
 </div>
 
-<div class="bottom-ad">
-  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
-</div>
+<div class="bottom-ad"><img src="https://via.placeholder.com/900x80?text=اعلان+هنا" /></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
@@ -68,20 +64,19 @@ let cart = [];
 let userLocation = "";
 
 function updateCart() {
-  const cartDiv = document.getElementById("cartItems");
-  cartDiv.innerHTML = "";
+  cartItems.innerHTML = "";
   let total = 0;
   cart.forEach(p => {
     total += p.price * p.qty;
-    cartDiv.innerHTML += `<div>${p.name} × ${p.qty}</div>`;
+    cartItems.innerHTML += `<div>${p.name} × ${p.qty} = ${p.price*p.qty}ج</div>`;
   });
   totalEl.innerText = total;
 }
 
-window.addQty = (id, name, price) => {
+window.addQty = (id, name, price, img) => {
   let item = cart.find(i => i.id === id);
   if(item) item.qty++;
-  else cart.push({id,name,price,qty:1});
+  else cart.push({id,name,price,qty:1,img});
   updateCart();
 };
 
@@ -98,31 +93,30 @@ onValue(ref(db,"products"), snap => {
     products.innerHTML += `
       <div class="product">
         <img src="${p.img}" width="80"><br>
-        ${p.name}<br>
-        ${p.price} ج<br>
-        <button onclick="addQty('${child.key}','${p.name}',${p.price})">➕</button>
+        ${p.name}<br>${p.price} ج<br>
+        <button onclick="addQty('${child.key}','${p.name}',${p.price}','${p.img}')">➕</button>
         <button onclick="minusQty('${child.key}')">➖</button>
       </div>`;
   });
 });
 
 window.getLocation = ()=>{
- navigator.geolocation.getCurrentPosition(pos=>{
-   userLocation = \`https://maps.google.com/?q=\${pos.coords.latitude},\${pos.coords.longitude}\`;
-   locationText.innerText="تم تحديد الموقع ✔";
- });
+ navigator.geolocation.getCurrentPosition(
+   pos=>{
+     userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+     locationText.innerText="تم تحديد الموقع ✔";
+   },
+   ()=> alert("اسمح بالوصول للموقع")
+ );
 };
 
 window.sendOrder = ()=>{
- let name = custName.value;
- let phone = custPhone.value;
-
- if(!name) return alert("اكتب اسمك");
- if(!phone) return alert("اكتب رقم الهاتف");
+ if(!custName.value) return alert("اكتب اسمك");
+ if(!custPhone.value) return alert("اكتب رقم الهاتف");
 
  push(ref(db,"orders"),{
-   name,
-   phone,
+   name:custName.value,
+   phone:custPhone.value,
    shop:shopName.value,
    location:userLocation,
    cart,
