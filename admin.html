@@ -4,11 +4,11 @@
 <meta charset="UTF-8"/>
 <title>Admin - Snacks Store</title>
 <style>
-body {font-family:Arial; background:#f2f2f2; text-align:center}
-#panel {display:none}
-input {padding:8px;margin:5px}
-button {padding:6px 12px;margin:5px}
-.orderBox{border:1px solid #000;margin:10px;padding:10px;background:#fff}
+body {font-family:Arial; background:#f2f2f2; text-align:center;}
+#panel {display:none;}
+input, button {padding:8px;margin:5px;}
+.orderBox{border:1px solid #000;margin:10px;padding:10px;background:#fff; text-align:right;}
+img.productImg{width:50px; height:50px; object-fit:cover; margin-right:5px;}
 </style>
 </head>
 <body>
@@ -25,11 +25,11 @@ button {padding:6px 12px;margin:5px}
 <!-- لوحة التحكم -->
 <div id="panel">
 
-<h3>إضافة منتج</h3>
+<h3>إضافة منتج جديد</h3>
 <input id="pname" placeholder="اسم المنتج">
-<input id="pprice" placeholder="السعر">
-<input id="pimg" placeholder="رابط صورة">
-<button onclick="addProduct()">إضافة</button>
+<input id="pprice" placeholder="السعر" type="number">
+<input type="file" id="pimgFile" accept="image/*">
+<button onclick="addProduct()">إضافة المنتج</button>
 
 <h3>الطلبات</h3>
 <div id="orders"></div>
@@ -49,6 +49,7 @@ function checkPass(){
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
@@ -61,35 +62,4 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-window.addProduct = ()=> push(ref(db,"products"),{
-  name:pname.value,
-  price:Number(pprice.value),
-  img:pimg.value
-});
-
-onValue(ref(db,"orders"), snap=>{
- orders.innerHTML="";
- snap.forEach(c=>{
-   let o=c.val();
-   let total=0;
-   let itemsHTML="";
-
-   o.cart.forEach((item,i)=>{
-     if(item.qty>0){
-       total+=item.price*item.qty;
-       itemsHTML+=`
-       <div>
-         <img src="${item.img}" width="40">
-         ${item.name} × ${item.qty}
-         <button onclick="removeItem('${c.key}',${i})">❌ حذف</button>
-       </div>`;
-     }
-   });
-
-   orders.innerHTML+=`
-   <div class="orderBox">
-   👤 ${o.name} — 📞 ${o.phone}<br>
-   <a href="${o.location}" target="_blank">الموقع</a><br>
-   ${itemsH
+const db = getD
