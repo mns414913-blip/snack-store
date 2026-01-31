@@ -1,71 +1,60 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Snacks Store</title>
+<meta charset="UTF-8"/>
+<title>Admin - Snacks Store</title>
 
 <style>
-body {font-family: Arial; margin:0; background:#f2f2f2; padding-bottom:100px;}
-header {background:#ff9800; padding:15px; color:white; display:flex; justify-content:space-between;}
-#cartBox {background:white; padding:10px; border-radius:8px; width:250px;}
-.products {display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;}
-.product {background:white; padding:10px; border-radius:8px; text-align:center;}
-button {padding:5px 10px; margin:3px;}
-
-/* الإعلانات */
-.top-ad, .bottom-ad {
-  width: 100%;
-  text-align: center;
-  background: #ddd;
-  padding: 5px 0;
-}
-.top-ad img, .bottom-ad img {
-  max-width: 100%;
-  border-radius: 6px;
-}
-.bottom-ad {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-}
+body {font-family:Arial; text-align:center; background:#f2f2f2}
+#panel {display:none}
+input {padding:8px;margin:5px}
+button {padding:6px 12px;margin:5px}
 </style>
 </head>
 <body>
 
-<!-- إعلان علوي -->
-<div class="top-ad">
-  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
+<h2>لوحة تحكم Snacks Store</h2>
+
+<!-- شاشة كلمة السر -->
+<div id="loginBox">
+  <h3>ادخل كلمة السر</h3>
+  <input type="password" id="passInput" placeholder="كلمة السر">
+  <button onclick="checkPass()">دخول</button>
 </div>
 
-<header>
-<h2>Snacks Store</h2>
-<div id="cartBox">
-<h4>🛒 السلة</h4>
-<div id="cartItems"></div>
-<b>الإجمالي: <span id="total">0</span> ج</b>
-</div>
-</header>
+<!-- لوحة التحكم (مخفية لحد ما يدخل الباس) -->
+<div id="panel">
 
-<div class="products" id="products"></div>
+<h3>إضافة منتج</h3>
+<input id="pname" placeholder="اسم المنتج">
+<input id="pprice" placeholder="السعر">
+<input id="pimg" placeholder="رابط صورة">
+<button onclick="addProduct()">إضافة</button>
 
-<h3 style="padding:10px">بيانات الطلب</h3>
-<div style="padding:10px">
-<input id="custName" placeholder="اسمك" required><br><br>
-<input id="shopName" placeholder="اسم المحل (اختياري)"><br><br>
-<button onclick="getLocation()">📍 تحديد الموقع</button>
-<div id="locationText"></div><br>
-<button onclick="sendOrder()">إرسال الطلب</button>
+<h3>المنتجات</h3>
+<div id="plist"></div>
+
+<h3>الطلبات</h3>
+<div id="orders"></div>
+
 </div>
 
-<!-- إعلان سفلي -->
-<div class="bottom-ad">
-  <img src="https://via.placeholder.com/900x80?text=اعلان+هنا" />
-</div>
+<script>
+const correctPass = "01012768312pqpqwuyieqw";
+
+function checkPass(){
+  if(passInput.value === correctPass){
+    loginBox.style.display="none";
+    panel.style.display="block";
+  } else {
+    alert("كلمة السر غلط ❌");
+  }
+}
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
@@ -80,69 +69,39 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let cart = [];
-let userLocation = "";
-
-function updateCart() {
-  const cartDiv = document.getElementById("cartItems");
-  cartDiv.innerHTML = "";
-  let total = 0;
-  cart.forEach(p => {
-    total += p.price * p.qty;
-    cartDiv.innerHTML += `<div>${p.name} × ${p.qty}</div>`;
-  });
-  document.getElementById("total").innerText = total;
-}
-
-window.addQty = (id, name, price) => {
-  let item = cart.find(i => i.id === id);
-  if(item) item.qty++;
-  else cart.push({id,name,price,qty:1});
-  updateCart();
+window.addProduct = ()=>{
+ push(ref(db,"products"),{
+   name:pname.value,
+   price:pprice.value,
+   img:pimg.value
+ });
+ alert("تمت الإضافة");
 };
 
-window.minusQty = (id) => {
-  let item = cart.find(i => i.id === id);
-  if(item && item.qty>1) item.qty--;
-  updateCart();
-};
-
-const productsDiv = document.getElementById("products");
-onValue(ref(db,"products"), snap => {
-  productsDiv.innerHTML="";
-  snap.forEach(child=>{
-    let p=child.val();
-    productsDiv.innerHTML += `
-      <div class="product">
-        <img src="${p.img}" width="80"><br>
-        ${p.name}<br>
-        ${p.price} ج<br>
-        <button onclick="addQty('${child.key}','${p.name}',${p.price})">➕</button>
-        <button onclick="minusQty('${child.key}')">➖</button>
-      </div>`;
-  });
+onValue(ref(db,"products"), snap=>{
+ plist.innerHTML="";
+ snap.forEach(c=>{
+   plist.innerHTML+=`${c.val().name} 
+   <button onclick="delProd('${c.key}')">حذف</button><br>`;
+ });
 });
 
-window.getLocation = ()=>{
- navigator.geolocation.getCurrentPosition(pos=>{
-   userLocation = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-   document.getElementById("locationText").innerText="تم تحديد الموقع ✔";
- });
-};
+window.delProd = (id)=> remove(ref(db,"products/"+id));
 
-window.sendOrder = ()=>{
- let name = custName.value;
- if(!name) return alert("اكتب اسمك");
- push(ref(db,"orders"),{
-   name,
-   shop:shopName.value,
-   location:userLocation,
-   cart,
-   status:"جديد"
+onValue(ref(db,"orders"), snap=>{
+ orders.innerHTML="";
+ snap.forEach(c=>{
+   let o=c.val();
+   orders.innerHTML+=`
+   <div style="border:1px solid #000;margin:5px;padding:5px">
+   ${o.name} — ${o.status}<br>
+   <a href="${o.location}" target="_blank">الموقع</a><br>
+   <button onclick="confirmOrder('${c.key}')">تأكيد</button>
+   </div>`;
  });
- alert("تم إرسال الطلب");
- cart=[]; updateCart();
-};
+});
+
+window.confirmOrder=(id)=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
 </script>
 
 </body>
