@@ -30,7 +30,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 function addProduct(){
- if(document.getElementById("pass").value!="mystore123"){alert("كلمة السر غلط");return;}
+ if(document.getElementById("pass").value!="01012768312pqpqwuyieqw"){alert("كلمة السر غلط");return;}
  db.ref("products").push({
   name:document.getElementById("name").value,
   price:document.getElementById("price").value,
