@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar">
-<head>
-<meta charset="UTF-8"/>
-<title>Admin - Snacks Store</title>
-</head>
+<head><meta charset="UTF-8"/><title>Admin</title></head>
 <body>
 
 <h2>لوحة التحكم</h2>
@@ -11,68 +8,59 @@
 <h3>إضافة منتج</h3>
 <input id="pname" placeholder="اسم المنتج">
 <input id="pprice" placeholder="السعر">
-<input id="pimg" placeholder="رابط صورة المنتج">
+<input id="pimg" placeholder="رابط صورة">
 <button onclick="addProduct()">إضافة</button>
-
-<p>لرفع صورة: ارفعها على postimages.org وخد الرابط المباشر وحطه هنا</p>
-
-<h3>المنتجات</h3>
-<div id="plist"></div>
 
 <h3>الطلبات</h3>
 <div id="orders"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
-  authDomain: "snacks-store-35112.firebaseapp.com",
-  databaseURL: "https://snacks-store-35112-default-rtdb.firebaseio.com",
-  projectId: "snacks-store-35112",
-  storageBucket: "snacks-store-35112.firebasestorage.app",
-  messagingSenderId: "523521529745",
-  appId: "1:523521529745:web:2fb1ec4fc48d99e11eec30"
-};
+const firebaseConfig = { apiKey:"AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw", authDomain:"snacks-store-35112.firebaseapp.com",
+databaseURL:"https://snacks-store-35112-default-rtdb.firebaseio.com", projectId:"snacks-store-35112",
+storageBucket:"snacks-store-35112.firebasestorage.app", messagingSenderId:"523521529745",
+appId:"1:523521529745:web:2fb1ec4fc48d99e11eec30"};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-window.addProduct = ()=>{
- push(ref(db,"products"),{
-   name:pname.value,
-   price:pprice.value,
-   img:pimg.value
- });
- alert("تمت الإضافة");
-};
-
-onValue(ref(db,"products"), snap=>{
- plist.innerHTML="";
- snap.forEach(c=>{
-   plist.innerHTML+=\`\${c.val().name} <button onclick="delProd('\${c.key}')">حذف</button><br>\`;
- });
-});
-
-window.delProd = (id)=> remove(ref(db,"products/"+id));
+window.addProduct = ()=> push(ref(db,"products"),{name:pname.value,price:pprice.value,img:pimg.value});
 
 onValue(ref(db,"orders"), snap=>{
  orders.innerHTML="";
  snap.forEach(c=>{
-   let o=c.val();
-   orders.innerHTML+=\`
-   <div style="border:1px solid #000;margin:5px;padding:5px">
-   👤 \${o.name}<br>
-   📞 \${o.phone}<br>
-   الحالة: \${o.status}<br>
-   <a href="\${o.location}" target="_blank">الموقع</a><br>
-   <button onclick="confirmOrder('\${c.key}')">تأكيد</button>
-   </div>\`;
+   let o=c.val(); let total=0;
+   let itemsHTML="";
+   o.cart.forEach((item,i)=>{
+     total+=item.price*item.qty;
+     itemsHTML+=`
+     <div>
+       <img src="${item.img}" width="40">
+       ${item.name} × ${item.qty}
+       <button onclick="removeItem('${c.key}',${i})">❌</button>
+     </div>`;
+   });
+
+   orders.innerHTML+=`
+   <div style="border:1px solid #000;margin:10px;padding:10px">
+   👤 ${o.name} — 📞 ${o.phone}<br>
+   <a href="${o.location}" target="_blank">الموقع</a><br>
+   ${itemsHTML}
+   <b>الإجمالي: ${total} ج</b><br>
+   الحالة: ${o.status}<br>
+   <button onclick="confirmOrder('${c.key}')">تأكيد الطلب</button>
+   </div>`;
  });
 });
 
-window.confirmOrder=(id)=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
+window.confirmOrder=id=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
+
+window.removeItem=(orderId,index)=>{
+ const orderRef=ref(db,"orders/"+orderId+"/cart/"+index);
+ update(orderRef,{qty:0});
+};
 </script>
 </body>
 </html>
