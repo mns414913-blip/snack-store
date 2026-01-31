@@ -27,8 +27,11 @@ img.productImg{width:50px; height:50px; object-fit:cover; margin-right:5px;}
 
 <h3>إضافة منتج جديد</h3>
 <input id="pname" placeholder="اسم المنتج">
-<input id="pprice" placeholder="السعر" type="number">
-<input type="file" id="pimgFile" accept="image/*">
+<input id="pprice" placeholder="السعر" type="number"><br>
+<label>رفع صورة من الجهاز:</label>
+<input type="file" id="pimgFile" accept="image/*"><br>
+<label>أو رابط الصورة مباشرة:</label>
+<input id="pimgURL" placeholder="رابط الصورة">
 <button onclick="addProduct()">إضافة المنتج</button>
 
 <h3>الطلبات</h3>
@@ -62,4 +65,70 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getD
+const db = getDatabase(app);
+const storage = getStorage(app);
+
+// إضافة المنتج (رفع صورة من الجهاز أو رابط مباشر)
+window.addProduct = async ()=>{
+  const name = pname.value.trim();
+  const price = Number(pprice.value);
+  const file = document.getElementById("pimgFile").files[0];
+  let url = document.getElementById("pimgURL").value.trim();
+
+  if(!name || !price || (!file && !url)) return alert("اكمل البيانات كلها");
+
+  if(file){ // رفع من الجهاز
+    const storageRef = sRef(storage, 'products/' + Date.now() + '_' + file.name);
+    await uploadBytes(storageRef, file);
+    url = await getDownloadURL(storageRef);
+  }
+
+  push(ref(db,"products"),{name, price, img: url});
+  alert("تمت إضافة المنتج بنجاح!");
+  pname.value=""; pprice.value=""; document.getElementById("pimgFile").value=""; document.getElementById("pimgURL").value="";
+};
+
+// عرض الطلبات مع الصور وحساب الإجمالي
+onValue(ref(db,"orders"), snap=>{
+  orders.innerHTML="";
+  snap.forEach(c=>{
+    const o=c.val();
+    let total=0;
+    let itemsHTML="";
+    o.cart.forEach((item,i)=>{
+      if(item.qty>0){
+        total+=item.price*item.qty;
+        itemsHTML+=`
+          <div>
+            <img src="${item.img}" class="productImg">
+            ${item.name} × ${item.qty} = ${item.price*item.qty} ج
+            <button onclick="removeItem('${c.key}',${i})">❌ رفض</button>
+          </div>`;
+      }
+    });
+
+    orders.innerHTML+=`
+      <div class="orderBox">
+        👤 ${o.name} — 📞 ${o.phone}<br>
+        🏬 ${o.shop || "لا يوجد"}<br>
+        <a href="${o.location}" target="_blank">الموقع</a><br>
+        ${itemsHTML}
+        <b>الإجمالي: ${total} ج</b><br>
+        الحالة: ${o.status}<br>
+        <button onclick="confirmOrder('${c.key}')">تأكيد الطلب</button>
+      </div>`;
+  });
+});
+
+// تأكيد الطلب
+window.confirmOrder=id=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
+
+// حذف منتج من الطلب (رفض)
+window.removeItem=(orderId,index)=>{
+  const itemRef = ref(db,"orders/"+orderId+"/cart/"+index);
+  update(itemRef,{qty:0});
+};
+</script>
+
+</body>
+</html>
