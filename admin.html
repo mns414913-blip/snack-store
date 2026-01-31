@@ -1,9 +1,29 @@
 <!DOCTYPE html>
 <html lang="ar">
-<head><meta charset="UTF-8"/><title>Admin</title></head>
+<head>
+<meta charset="UTF-8"/>
+<title>Admin - Snacks Store</title>
+<style>
+body {font-family:Arial; background:#f2f2f2; text-align:center}
+#panel {display:none}
+input {padding:8px;margin:5px}
+button {padding:6px 12px;margin:5px}
+.orderBox{border:1px solid #000;margin:10px;padding:10px;background:#fff}
+</style>
+</head>
 <body>
 
-<h2>لوحة التحكم</h2>
+<h2>لوحة تحكم Snacks Store</h2>
+
+<!-- شاشة كلمة السر -->
+<div id="loginBox">
+  <h3>ادخل كلمة السر</h3>
+  <input type="password" id="passInput" placeholder="كلمة السر">
+  <button onclick="checkPass()">دخول</button>
+</div>
+
+<!-- لوحة التحكم -->
+<div id="panel">
 
 <h3>إضافة منتج</h3>
 <input id="pname" placeholder="اسم المنتج">
@@ -14,53 +34,62 @@
 <h3>الطلبات</h3>
 <div id="orders"></div>
 
+</div>
+
+<script>
+const correctPass = "01012768312pqpqwuyieqw";
+function checkPass(){
+  if(passInput.value === correctPass){
+    loginBox.style.display="none";
+    panel.style.display="block";
+  } else alert("كلمة السر غلط ❌");
+}
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const firebaseConfig = { apiKey:"AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw", authDomain:"snacks-store-35112.firebaseapp.com",
-databaseURL:"https://snacks-store-35112-default-rtdb.firebaseio.com", projectId:"snacks-store-35112",
-storageBucket:"snacks-store-35112.firebasestorage.app", messagingSenderId:"523521529745",
-appId:"1:523521529745:web:2fb1ec4fc48d99e11eec30"};
+const firebaseConfig = {
+  apiKey:"AIzaSyBY0MBybVBW5GHpN1gatyrOqdYHkH726zw",
+  authDomain:"snacks-store-35112.firebaseapp.com",
+  databaseURL:"https://snacks-store-35112-default-rtdb.firebaseio.com",
+  projectId:"snacks-store-35112",
+  storageBucket:"snacks-store-35112.firebasestorage.app",
+  messagingSenderId:"523521529745",
+  appId:"1:523521529745:web:2fb1ec4fc48d99e11eec30"
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-window.addProduct = ()=> push(ref(db,"products"),{name:pname.value,price:pprice.value,img:pimg.value});
+window.addProduct = ()=> push(ref(db,"products"),{
+  name:pname.value,
+  price:Number(pprice.value),
+  img:pimg.value
+});
 
 onValue(ref(db,"orders"), snap=>{
  orders.innerHTML="";
  snap.forEach(c=>{
-   let o=c.val(); let total=0;
+   let o=c.val();
+   let total=0;
    let itemsHTML="";
+
    o.cart.forEach((item,i)=>{
-     total+=item.price*item.qty;
-     itemsHTML+=`
-     <div>
-       <img src="${item.img}" width="40">
-       ${item.name} × ${item.qty}
-       <button onclick="removeItem('${c.key}',${i})">❌</button>
-     </div>`;
+     if(item.qty>0){
+       total+=item.price*item.qty;
+       itemsHTML+=`
+       <div>
+         <img src="${item.img}" width="40">
+         ${item.name} × ${item.qty}
+         <button onclick="removeItem('${c.key}',${i})">❌ حذف</button>
+       </div>`;
+     }
    });
 
    orders.innerHTML+=`
-   <div style="border:1px solid #000;margin:10px;padding:10px">
+   <div class="orderBox">
    👤 ${o.name} — 📞 ${o.phone}<br>
    <a href="${o.location}" target="_blank">الموقع</a><br>
-   ${itemsHTML}
-   <b>الإجمالي: ${total} ج</b><br>
-   الحالة: ${o.status}<br>
-   <button onclick="confirmOrder('${c.key}')">تأكيد الطلب</button>
-   </div>`;
- });
-});
-
-window.confirmOrder=id=> update(ref(db,"orders/"+id),{status:"تم التأكيد"});
-
-window.removeItem=(orderId,index)=>{
- const orderRef=ref(db,"orders/"+orderId+"/cart/"+index);
- update(orderRef,{qty:0});
-};
-</script>
-</body>
-</html>
+   ${itemsH
